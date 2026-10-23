@@ -4,8 +4,8 @@ import docsPlugin from './vite-plugin-docs.ts';
 
 export default defineConfig(({ mode }) => {
   const portable = mode === 'portable';
-  // The repo-root VERSION file is the single version source (deploy-all.bat
-  // and android\build.bat read it too). Baked into the client bundle so the
+  // The repo-root VERSION file is the single version source for every
+  // artifact of a release. Baked into the client bundle so the
   // chooser footer can show the running version.
   const version = readFileSync(new URL('./VERSION', import.meta.url), 'utf8').trim();
   return {

@@ -1,5 +1,5 @@
-// The version baked into the build from the repo's VERSION file: the same
-// single source deploy-all.bat and android\build.bat read. vite.config.ts
+// The version baked into the build from the repo's VERSION file: the single
+// version source for every artifact of a release. vite.config.ts
 // defines __BW_VERSION__; the prerender passes the same number into
 // galleryMarkup() from the file directly (vite-plugin-docs.ts).
 declare const __BW_VERSION__: string;
