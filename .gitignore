@@ -1,0 +1,15 @@
+node_modules/
+dist/
+网站/
+src/remote/local_settings.ts
+android/app/build/
+android/app/src/main/assets/
+android/dist/
+android/bin/
+*.log
+*.log
+.DS_Store
+test-results/
+
+tmp/
+.tmpbroker/

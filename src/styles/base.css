@@ -1,0 +1,33 @@
+[hidden] {
+  display: none !important;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+body.page-viewer {
+  background: #000;
+  overflow: hidden;
+  /* Vertical drags still tune the sign. Horizontal edge swipes stay with the
+     system, so the Android back gesture is not swallowed by the page. */
+  touch-action: pan-x;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.viewer-stage {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
