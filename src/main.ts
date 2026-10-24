@@ -22,6 +22,11 @@ if (app.hasAttribute('data-prerendered')) {
 let route: Route | null = null;
 let mounted: Mounted | null = null;
 let generation = 0;
+/* The landing remounts its whole tree when the route comes back to it, which
+   happens after the browser's own scroll restoration has already run (and
+   clamped to 0 against the viewer's fixed stage). Remember where it was
+   scrolled to, and put it back when the viewer hands the page back. */
+let landingScrollY = 0;
 
 function currentRoute(): Route {
   return routeFromLocation(location.pathname, location.search, location.hash);
@@ -74,6 +79,8 @@ async function render(): Promise<void> {
     return;
   }
   const gen = ++generation;
+  const prev = route;
+  if (prev === 'landing') landingScrollY = window.scrollY;
   mounted?.destroy();
   mounted = null;
   route = r;
@@ -87,6 +94,7 @@ async function render(): Promise<void> {
     return;
   }
   mounted = m;
+  if (r === 'landing' && prev === 'viewer') window.scrollTo(0, landingScrollY);
 }
 
 window.addEventListener('hashchange', () => void render());
