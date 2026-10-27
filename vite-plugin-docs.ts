@@ -4,10 +4,10 @@ import { join, resolve } from 'node:path';
 import { Marked } from 'marked';
 import type { Plugin } from 'vite';
 import fontManifest from './src/render/font-manifest.json';
-import { landingMarkup } from './src/landing/landing-markup.ts';
+import { landingMarkup, FAQ_ITEMS } from './src/landing/landing-markup.ts';
 import { quickMarkup } from './src/simple/quick-markup.ts';
 import { rewritePortableHrefs } from './src/paths.ts';
-import { NOT_FOUND, PAGES, SITE_NAME, apkUrl, type PageMeta } from './src/pages.ts';
+import { KEYWORDS, NOT_FOUND, PAGES, SITE_NAME, apkUrl, type PageMeta } from './src/pages.ts';
 
 const VIRTUAL_ID = 'virtual:docs';
 const RESOLVED_ID = '\0' + VIRTUAL_ID;
@@ -101,11 +101,19 @@ function headTags(page: PageMeta, site: string, noindex: boolean): string {
   const tags = [
     `<title>${escapeAttr(page.title)}</title>`,
     meta('name', 'description', page.description),
-    noindex ? meta('name', 'robots', 'noindex') : '',
+    meta('name', 'keywords', KEYWORDS),
+    meta('name', 'application-name', SITE_NAME),
+    noindex
+      ? meta('name', 'robots', 'noindex')
+      : meta('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1'),
+    meta('name', 'theme-color', '#0d0e11'),
     meta('property', 'og:type', 'website'),
     meta('property', 'og:site_name', SITE_NAME),
+    meta('property', 'og:locale', 'zh_CN'),
     meta('property', 'og:title', page.title),
     meta('property', 'og:description', page.description),
+    meta('name', 'twitter:title', page.title),
+    meta('name', 'twitter:description', page.description),
   ];
   if (site) {
     tags.push(
@@ -116,6 +124,7 @@ function headTags(page: PageMeta, site: string, noindex: boolean): string {
       meta('property', 'og:image:height', '630'),
       meta('property', 'og:image:alt', '大字屏 (BIGWORDS): big words for any screen'),
       meta('name', 'twitter:card', 'summary_large_image'),
+      meta('name', 'twitter:image', `${site}/og.png`),
     );
     if (page === PAGES.landing) tags.push(jsonLd(site));
   } else {
@@ -129,18 +138,53 @@ function jsonLd(site: string): string {
   const data = {
     '@context': 'https://schema.org',
     '@graph': [
-      { '@type': 'WebSite', '@id': `${site}/#website`, name: SITE_NAME, url: `${site}/` },
+      {
+        '@type': 'Organization',
+        '@id': `${site}/#organization`,
+        name: SITE_NAME,
+        url: `${site}/`,
+        logo: { '@type': 'ImageObject', url: `${site}/apple-touch-icon.png` },
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${site}/#website`,
+        name: SITE_NAME,
+        alternateName: 'BIGWORDS',
+        url: `${site}/`,
+        description: PAGES.landing.description,
+        inLanguage: 'zh-CN',
+        publisher: { '@id': `${site}/#organization` },
+      },
       {
         '@type': 'WebApplication',
         name: SITE_NAME,
+        alternateName: '全屏大字工具',
         url: `${site}/app`,
         description: PAGES.landing.description,
         applicationCategory: 'UtilitiesApplication',
         operatingSystem: 'Any',
         browserRequirements: 'Requires JavaScript',
+        inLanguage: 'zh-CN',
         isAccessibleForFree: true,
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
         license: 'https://opensource.org/licenses/MIT',
+        featureList: [
+          '全屏大字显示',
+          '滚动字幕与动画效果',
+          '多页轮播',
+          '倒计时',
+          '本地生成二维码',
+          '多屏遥控同步',
+        ],
+      },
+      {
+        '@type': 'FAQPage',
+        inLanguage: 'zh-CN',
+        mainEntity: FAQ_ITEMS.map(([q, a]) => ({
+          '@type': 'Question',
+          name: q,
+          acceptedAnswer: { '@type': 'Answer', text: a.replace(/<[^>]+>/g, '') },
+        })),
       },
     ],
   };
@@ -182,9 +226,11 @@ function staticHeader(current?: 'home' | 'editor' | 'docs' | 'guide'): string {
 }
 
 function fillPage(template: string, page: PageMeta, site: string, noindex: boolean): string {
-  return template
+  let html = template
     .replace('<!-- seo:head -->', () => headTags(page, site, noindex))
     .replace('<!-- seo:noscript -->', () => noscript(page));
+  if (page.lang) html = html.replace('<html lang="zh-CN">', `<html lang="${page.lang}">`);
+  return html;
 }
 
 /**
@@ -423,17 +469,42 @@ export default function docsPlugin(): Plugin[] {
           }
         }
 
+        // Like big-text.app: welcome search engines and AI crawlers
+        // explicitly, so the site is quotable by assistants, too.
+        const allow = 'User-agent: *\nAllow: /\n';
         if (noindex) {
           writeFileSync(resolve(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
           return;
         }
         if (!site) {
-          writeFileSync(resolve(out, 'robots.txt'), 'User-agent: *\nAllow: /\n');
+          writeFileSync(resolve(out, 'robots.txt'), allow);
           return;
         }
-        writeFileSync(resolve(out, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${site}/sitemap.xml\n`);
+        const aiBots = [
+          'GPTBot',
+          'OAI-SearchBot',
+          'ChatGPT-User',
+          'ClaudeBot',
+          'Claude-SearchBot',
+          'Claude-User',
+          'PerplexityBot',
+          'Perplexity-User',
+          'Google-Extended',
+          'Applebot',
+          'Applebot-Extended',
+          'Bingbot',
+          'DuckAssistBot',
+        ];
+        const robots =
+          allow +
+          '\n' +
+          aiBots.map((b) => `User-agent: ${b}`).join('\n') +
+          '\nAllow: /\n\n' +
+          `Sitemap: ${site}/sitemap.xml\n`;
+        writeFileSync(resolve(out, 'robots.txt'), robots);
+        const lastmod = new Date().toISOString().slice(0, 10);
         const urls = Object.values(PAGES)
-          .map((p) => `  <url><loc>${escapeAttr(site + p.path)}</loc></url>`)
+          .map((p) => `  <url><loc>${escapeAttr(site + p.path)}</loc><lastmod>${lastmod}</lastmod></url>`)
           .join('\n');
         writeFileSync(
           resolve(out, 'sitemap.xml'),

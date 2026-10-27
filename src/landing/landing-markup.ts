@@ -47,6 +47,21 @@ const CHEVRON =
 const faqItem = (q: string, a: string) =>
   `<details><summary>${esc(q)}${CHEVRON}</summary><p>${a}</p></details>`;
 
+/**
+ * The landing page's FAQ, shared with the build: vite-plugin-docs.ts turns
+ * the same list into the page's FAQPage structured data (JSON-LD), so the
+ * visible answers and the ones search engines read can never disagree.
+ * Answers may carry inline markup (e.g. <code>); the build strips it.
+ */
+export const FAQ_ITEMS: [question: string, answerHtml: string][] = [
+  ['真的免费吗？', '真的。网页版完全免费，没有付费墙，也没有广告。整个项目以 MIT 协议开源，你甚至可以自己部署一套。'],
+  ['需要注册账号吗？', '不需要。打开网页就是编辑器，没有登录框。最近写过的文字和颜色只留在你自己的浏览器里。'],
+  ['我写的内容会被上传吗？', '不会。文字和样式全部保存在链接 <code class="lp-code">#</code> 号之后的部分，浏览器从来不把这段发给服务器——这是 Web 的标准行为。服务器上没有数据库可以存你的内容。'],
+  ['电视、平板、投影仪能用吗？', '任何能开浏览器的屏幕都行。电视可以用遥控器输入链接，也可以手机打开后投屏；文字会自动放大到占满整块屏幕。'],
+  ['怎么同时控制好几块屏幕？', '在控制端建立一个房间，其他屏幕作为播放端扫码或输入编号加入。之后控制端改字、换色、翻页，所有屏幕同步执行。'],
+  ['支持哪些文字和语言？', '中文、英文、日文、emoji 都可以。内置六款字体，遇到不含的字形会自动落到系统字体，不会出现方块。'],
+];
+
 const TICKER: [string, string, string][] = [
   ['接机牌', '#111111', '#ffd60a'],
   ['ON AIR', '#b00020', '#ffffff'],
@@ -220,12 +235,7 @@ export function landingMarkup(version: string): string {
     '<section class="lp-section" id="faq"><div class="lp-wrap lp-wrap-narrow">' +
     '<header class="lp-section-head lp-reveal"><p class="lp-eyebrow"><span class="lp-eyebrow-dash" aria-hidden="true"></span>常见问题</p><h2>你可能想问</h2></header>' +
     '<div class="lp-faq lp-reveal">' +
-    faqItem('真的免费吗？', '真的。网页版完全免费，没有付费墙，也没有广告。整个项目以 MIT 协议开源，你甚至可以自己部署一套。') +
-    faqItem('需要注册账号吗？', '不需要。打开网页就是编辑器，没有登录框。最近写过的文字和颜色只留在你自己的浏览器里。') +
-    faqItem('我写的内容会被上传吗？', '不会。文字和样式全部保存在链接 <code class="lp-code">#</code> 号之后的部分，浏览器从来不把这段发给服务器——这是 Web 的标准行为。服务器上没有数据库可以存你的内容。') +
-    faqItem('电视、平板、投影仪能用吗？', '任何能开浏览器的屏幕都行。电视可以用遥控器输入链接，也可以手机打开后投屏；文字会自动放大到占满整块屏幕。') +
-    faqItem('怎么同时控制好几块屏幕？', '在控制端建立一个房间，其他屏幕作为播放端扫码或输入编号加入。之后控制端改字、换色、翻页，所有屏幕同步执行。') +
-    faqItem('支持哪些文字和语言？', '中文、英文、日文、emoji 都可以。内置六款字体，遇到不含的字形会自动落到系统字体，不会出现方块。') +
+    FAQ_ITEMS.map(([q, a]) => faqItem(q, a)).join('') +
     '</div></div></section>' +
     // ---------- 结尾 CTA ----------
     '<section class="lp-cta"><span class="lp-cta-back" aria-hidden="true">大</span><div class="lp-wrap">' +

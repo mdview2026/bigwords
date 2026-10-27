@@ -4,6 +4,13 @@
 
 export const SITE_NAME = '大字屏';
 
+/**
+ * Site-level search keywords (Baidu still reads the keywords meta; Google
+ * ignores it). Emitted on every page's head by the build.
+ */
+export const KEYWORDS =
+  '大字屏,全屏大字,滚动字幕,手持弹幕,荧光字幕,LED字幕,弹幕屏,接机牌,应援大字,大字滚动,big text,fullscreen text';
+
 /** The project's source code, linked from the landing page footer. */
 export const SOURCE_URL = 'https://github.com/mdview2026/bigwords';
 
@@ -21,13 +28,15 @@ export interface PageMeta {
   path: string;
   title: string;
   description: string;
+  /** Overrides the template's zh-CN <html lang>; the reference is in English. */
+  lang?: string;
 }
 
 export const PAGES = {
   landing: {
     path: '/',
-    title: '大字屏 BIGWORDS — 把一句话，铺满整块屏幕',
-    description: '在手机、平板、电视或任何带浏览器的屏幕上，把想说的话变成占满屏幕的大字。接机、倒计时、店铺 Wi-Fi、演出应援。免费、无需注册、开源，链接即全部。',
+    title: '大字屏 BIGWORDS — 全屏大字工具，把一句话铺满整块屏幕',
+    description: '免费的全屏大字与滚动字幕工具：在手机、平板、电视上把一句话铺满屏幕。支持手持弹幕、荧光字、倒计时与二维码，接机、应援、店铺 Wi-Fi、直播提词都能用。无需注册，文字只留在本机。',
   },
   app: {
     path: '/app',
@@ -38,6 +47,7 @@ export const PAGES = {
     path: '/docs',
     title: 'Docs: URL reference · 大字屏',
     description: 'Every BIGWORDS URL parameter: formatting, fonts, size, colors, animations, slides, countdowns, QR codes, images and self-hosting.',
+    lang: 'en',
   },
 } as const satisfies Record<string, PageMeta>;
 

@@ -86,6 +86,8 @@ async function render(): Promise<void> {
   route = r;
   // The viewer's title never includes the message.
   document.title = titleFor(r);
+  // The reference is in English; everything else is Chinese (see pages.ts).
+  document.documentElement.lang = r === 'docs' ? 'en' : 'zh-CN';
   syncPlayerLink(r);
   syncJoinLink(r);
   const m = await load(r);
