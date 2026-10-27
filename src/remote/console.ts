@@ -196,7 +196,7 @@ export function mountConsole(app: HTMLElement, mode: 'scan' | 'show'): { destroy
     return h(
       'div',
       { class: 'control-row' },
-      h('label', {}, h('span', { class: 'control-slot' }, String(player.slot)), h('span', {}, formatPlayerId(player.id))),
+      h('label', {}, h('span', { class: 'control-slot' }, String(player.slot)), h('span', { class: 'control-id' }, formatPlayerId(player.id))),
       h('div', { class: 'control-move' }, up, down, del),
     );
   };
@@ -361,7 +361,7 @@ export function mountConsole(app: HTMLElement, mode: 'scan' | 'show'): { destroy
               h(
                 'div',
                 { class: 'control-row' },
-                h('label', {}, h('span', { class: 'control-slot' }, String(member.slot)), h('span', {}, formatPlayerId(member.id))),
+                h('label', {}, h('span', { class: 'control-slot' }, String(member.slot)), h('span', { class: 'control-id' }, formatPlayerId(member.id))),
               ),
             )),
       );

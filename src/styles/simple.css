@@ -1209,6 +1209,18 @@ body.page-join {
   align-items: center;
   gap: 10px;
   font-weight: 700;
+  min-width: 0;
+}
+/* The roster's player id must stay on one line: it is matched against the
+   code the player's own screen shows, so it shrinks and finally ellipsizes
+   instead of folding a group onto a second line. */
+.control-id {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 .control-row input,
 .send-player input {

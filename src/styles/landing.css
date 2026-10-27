@@ -155,15 +155,7 @@
   margin: 20px 0 24px;
   text-wrap: balance;
 }
-.lp .lp-hero-title em {
-  font-style: normal;
-  background: var(--lp-accent);
-  color: var(--lp-accent-ink);
-  padding: 0 .14em;
-  border-radius: .14em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-}
+.lp .lp-hero-title em { font-style: normal; }
 .lp .lp-lede {
   font-size: clamp(16.5px, .35vw + 15.7px, 19px);
   line-height: 1.85;

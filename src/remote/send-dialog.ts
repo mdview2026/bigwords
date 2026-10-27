@@ -38,7 +38,7 @@ export function openSendDialog(fragment: string): () => void {
         { class: 'send-player' },
         box,
         h('span', { class: 'control-slot' }, String(player.slot)),
-        h('span', {}, formatPlayerId(player.id)),
+        h('span', { class: 'control-id' }, formatPlayerId(player.id)),
       );
     });
     const submit = h('button', { class: 'btn btn-primary', type: 'button' }, '发送') as HTMLButtonElement;
