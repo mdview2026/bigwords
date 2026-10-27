@@ -183,13 +183,8 @@
 }
 
 /* ---------- 首屏演示 ---------- */
-.lp .lp-hero-demo {
-  background: var(--lp-ink-1);
-  border: 1px solid var(--lp-line);
-  border-radius: 20px;
-  padding: 18px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .04);
-}
+/* 不装卡片里：机身图直接立在页面底色上，靠自身投影和页面光晕分层 */
+.lp .lp-hero-demo { padding: 0; }
 .lp .lp-demo-label {
   display: flex; align-items: center; gap: 8px;
   font-size: 13px; color: var(--lp-muted);
@@ -204,14 +199,49 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(61, 220, 132, .35); }
   50%      { box-shadow: 0 0 0 5px rgba(61, 220, 132, 0); }
 }
-.lp .lp-demo-screen {
-  aspect-ratio: 4 / 5;
-  border-radius: 14px;
-  display: grid; place-items: center;
+/* 横置 iPhone 实拍素材（public/img/iphone-landscape.png，屏幕是透明洞）：
+   字幕层按洞的位置垫在底下，机身图压在上面。洞的坐标由素材量得，若换图
+   需重跑 scripts/make-phone-asset.py 重取 inset。 */
+.lp .lp-phone {
+  position: relative;
+  aspect-ratio: 960 / 475;
+}
+.lp .lp-phone-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, .5));
+}
+/* 屏幕层：洞的位置 = 素材里透明区的包围盒（上 右 下 左） */
+.lp .lp-phone-screen {
+  position: absolute;
+  inset: 5.47% 2.4% 5.47% 5.94%;
+  border-radius: 12px;
   overflow: hidden;
-  padding: 20px;
+  display: flex; align-items: center;
   background: #111111; color: #ffd60a;
   transition: background-color .3s ease, color .3s ease;
+  container-type: size;
+}
+/* 滚动字幕：轨道是整数份「字 + .6em 间隔」，偶数份时位移 -50% 恰好无缝循环 */
+.lp .lp-phone-track {
+  display: flex; align-items: center;
+  width: max-content;
+  animation: lp-phone-mq var(--lp-mq-dur, 12s) linear infinite;
+}
+.lp .lp-phone:hover .lp-phone-track { animation-play-state: paused; }
+@keyframes lp-phone-mq { to { transform: translateX(-50%); } }
+.lp .lp-phone-text {
+  flex: none;
+  white-space: nowrap;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: .015em;
+  margin-inline-end: .6em;
+  font-size: clamp(22px, 6vw, 46px); /* 不支持容器单位的浏览器兜底 */
+  font-size: 58cqh;                  /* 无 JS 时按屏幕高度自适应 */
 }
 .lp .lp-demo-controls {
   margin-top: 14px;
@@ -643,6 +673,10 @@
 /* ---------- 动效偏好 ---------- */
 @media (prefers-reduced-motion: reduce) {
   .lp .lp-ticker-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+  .lp .lp-phone-track { animation: none; width: auto; }
+  .lp .lp-phone-screen { justify-content: center; }
+  .lp .lp-phone-text { margin-inline-end: 0; }
+  .lp .lp-phone-text + .lp-phone-text { display: none; }
   .lp .lp-rainbow { animation: none; background: none; color: var(--lp-accent); }
   .lp .lp-demo-dot { animation: none; }
   .lp.lp-ready .lp-reveal { opacity: 1; transform: none; transition: none; }

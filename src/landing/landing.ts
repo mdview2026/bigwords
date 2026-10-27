@@ -19,6 +19,12 @@ const SCHEMES: { bg: string; fg: string }[] = [
 
 const SLIDES = ['第一页', '第二页', '第三页'];
 
+/** The hero demo's last state. 去全屏播放 is a hash-only jump into the viewer;
+    Esc there comes back via history.back(), which remounts the whole landing
+    from scratch (see main.ts). The module lives on across that round-trip, so
+    the demo can pick up the words and scheme exactly where you left them. */
+let demoState: { text: string; scheme: number } | null = null;
+
 /** Scale one .lp-fit-text so it fills its .lp-fit-box without overflowing. */
 function fit(box: Element): void {
   const el = box.querySelector<HTMLElement>('.lp-fit-text');
@@ -60,9 +66,10 @@ export function mountLanding(app: HTMLElement): { destroy(): void } {
   };
   root.addEventListener('click', onAnchorClick);
 
-  /* ---- The hero demo: type words, pick a scheme, open the real display. ---- */
+  /* ---- The hero demo: type words and the phone's screen runs them as a
+     scrolling subtitle; pick a scheme, then open the real display. ---- */
   const screen = root.querySelector<HTMLElement>('#lpDemoScreen')!;
-  const screenText = root.querySelector<HTMLElement>('#lpDemoText')!;
+  const phoneTrack = root.querySelector<HTMLElement>('#lpPhoneTrack')!;
   const input = root.querySelector<HTMLInputElement>('#lpDemoInput')!;
   const play = root.querySelector<HTMLAnchorElement>('#lpDemoPlay')!;
   const swatches = root.querySelector<HTMLElement>('#lpDemoSwatches')!;
@@ -84,19 +91,50 @@ export function mountLanding(app: HTMLElement): { destroy(): void } {
     swatches.append(b);
   }
 
+  /** Fit the line to the phone screen's height, then clone it into an even
+      number of copies whose half is at least the screen wide — the track's
+      -50% CSS loop stays seamless for any width (the page ticker does the
+      same). Duration follows the text's size, so the pace feels equal whether
+      the line is long or short. */
+  const renderMarquee = (text: string, faded: boolean) => {
+    const W = screen.clientWidth;
+    const H = screen.clientHeight;
+    if (!W || !H) return;
+    const fontPx = Math.max(10, Math.round(H * 0.56));
+    let span = phoneTrack.firstElementChild as HTMLElement | null;
+    if (!span) {
+      span = document.createElement('span');
+      span.className = 'lp-phone-text';
+      phoneTrack.append(span);
+    }
+    const style = (el: HTMLElement) => {
+      el.textContent = text;
+      el.style.fontSize = `${fontPx}px`;
+      el.style.opacity = faded ? '.35' : '';
+    };
+    style(span);
+    const unit = span.getBoundingClientRect().width + fontPx * 0.6; // + the .6em gap
+    let copies = Math.min(16, Math.max(2, Math.ceil((W * 2) / unit + 0.5)));
+    if (copies % 2) copies++;
+    while (phoneTrack.children.length > copies) phoneTrack.lastElementChild!.remove();
+    for (const el of phoneTrack.children) if (el !== span) style(el as HTMLElement);
+    while (phoneTrack.children.length < copies) {
+      const el = document.createElement('span');
+      el.className = 'lp-phone-text';
+      style(el);
+      phoneTrack.append(el);
+    }
+    const half = (copies / 2) * unit;
+    phoneTrack.style.setProperty('--lp-mq-dur', `${Math.max(3, half / (fontPx * 0.75)).toFixed(2)}s`);
+  };
+
   const applyDemo = () => {
     const text = input.value.replace(/\s+$/, '');
-    if (text) {
-      screenText.textContent = text;
-      screenText.style.opacity = '';
-    } else {
-      screenText.textContent = '…';
-      screenText.style.opacity = '.35';
-    }
     screen.style.background = `#${scheme.bg}`;
     screen.style.color = `#${scheme.fg}`;
-    play.href = new URL(sitePath(`/#${encodeURIComponent(text || '大字屏')}&bg=${scheme.bg}&fg=${scheme.fg}`), location.href).href;
-    fit(screen);
+    renderMarquee(text || '…', !text);
+    play.href = new URL(sitePath(`/#${encodeURIComponent(text || '大字屏')}&bg=${scheme.bg}&fg=${scheme.fg}&anim=scroll`), location.href).href;
+    demoState = { text: input.value, scheme: SCHEMES.indexOf(scheme) };
   };
   const onDemoInput = () => applyDemo();
   const onDemoEnter = (event: KeyboardEvent) => {
@@ -106,6 +144,15 @@ export function mountLanding(app: HTMLElement): { destroy(): void } {
   };
   input.addEventListener('input', onDemoInput);
   input.addEventListener('keydown', onDemoEnter);
+  // Back from the viewer: the markup was rebuilt, so put the demo back where
+  // the fullscreen play interrupted it.
+  if (demoState) {
+    input.value = demoState.text;
+    const idx = Math.min(Math.max(demoState.scheme, 0), SCHEMES.length - 1);
+    scheme = SCHEMES[idx];
+    for (const [i, other] of Array.from(swatches.children).entries())
+      other.setAttribute('aria-checked', i === idx ? 'true' : 'false');
+  }
   applyDemo();
 
   /* ---- The ticker: clone its chips until there are two identical halves
@@ -156,7 +203,10 @@ export function mountLanding(app: HTMLElement): { destroy(): void } {
   let resizeTimer = 0;
   const onResize = () => {
     clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => root.querySelectorAll('.lp-fit-box').forEach(fit), 120);
+    resizeTimer = window.setTimeout(() => {
+      root.querySelectorAll('.lp-fit-box').forEach(fit);
+      applyDemo(); // the phone marquee refits its size and copy count too
+    }, 120);
   };
   window.addEventListener('resize', onResize);
 

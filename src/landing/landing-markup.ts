@@ -13,9 +13,10 @@ import { qrPathData } from '../render/qr';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** The link the hero demo's 「去全屏播放」 button opens. */
+/** The link the hero demo's 「去全屏播放」 button opens: the same scrolling
+    subtitle the phone screen previews, blown up to a real display. */
 function playHref(text: string, bg: string, fg: string): string {
-  return esc(sitePath(`/#${encodeURIComponent(text)}&bg=${bg}&fg=${fg}`));
+  return esc(sitePath(`/#${encodeURIComponent(text)}&bg=${bg}&fg=${fg}&anim=scroll`));
 }
 
 /* Play links open in the same tab on purpose: a hash-only navigation stays
@@ -99,10 +100,17 @@ export function landingMarkup(version: string): string {
     '下载 Android 版</a></div>' +
     '<ul class="lp-hero-meta"><li>不装 App 也能用</li><li>内容不上传服务器</li><li>MIT 开源</li></ul>' +
     '</div>' +
-    // 可交互演示
+    // 可交互演示：横置 iPhone 实拍素材，屏幕透明洞里垫字幕层，滚过你写的字
     '<div class="lp-hero-demo" aria-label="试玩演示">' +
     '<div class="lp-demo-label"><span class="lp-demo-dot" aria-hidden="true"></span>试一试：输入文字，选个配色</div>' +
-    '<div class="lp-demo-screen lp-fit-box" id="lpDemoScreen"><span class="lp-fit-text" id="lpDemoText">欢迎回家</span></div>' +
+    '<div class="lp-phone">' +
+    '<div class="lp-phone-screen" id="lpDemoScreen">' +
+    // 四份拷贝是给无 JS 视图的：够宽即可，JS 挂上后会按屏宽重算（保持偶数份）。
+    `<div class="lp-phone-track" id="lpPhoneTrack" aria-hidden="true">${'<span class="lp-phone-text">欢迎回家</span>'.repeat(4)}</div>` +
+    '</div>' +
+    // 手机是装饰图（屏幕区透明），压在字幕层上面；宽高写死避免布局跳动
+    `<img class="lp-phone-img" src="${esc(sitePath('/img/iphone-landscape.png'))}" alt="" width="960" height="475" draggable="false">` +
+    '</div>' +
     '<div class="lp-demo-controls">' +
     '<input id="lpDemoInput" class="lp-demo-input" type="text" maxlength="24" value="欢迎回家" autocomplete="off" enterkeyhint="go" aria-label="输入要显示的大字">' +
     '<div class="lp-demo-swatches" role="radiogroup" aria-label="配色方案" id="lpDemoSwatches"></div>' +
