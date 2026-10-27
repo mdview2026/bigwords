@@ -6,12 +6,17 @@ const SCAN_INTERVAL_MS = 120;
 /**
  * Open the camera and read QR codes until the returned stop function runs.
  *
+ * `onCode` answers whether the code was accepted: true ends the scan, false
+ * keeps the camera reading so a wrong code (some other app's QR) does not
+ * kill the session. The same rejected code is not reported again for a
+ * couple of seconds, or the toast would fire once per frame.
+ *
  * Frames are decoded in JavaScript (jsQR) rather than with the browser's
  * BarcodeDetector: that interface is experimental, and in the Android app's
  * WebView it exists but never returns a code, so scanning silently did
  * nothing there. Reading the frames ourselves works wherever a camera opens.
  */
-export async function startScanner(video: HTMLVideoElement, onCode: (text: string) => void): Promise<() => void> {
+export async function startScanner(video: HTMLVideoElement, onCode: (text: string) => boolean): Promise<() => void> {
   if (!navigator.mediaDevices?.getUserMedia) throw new Error('no-scanner');
   const { default: decodeQr } = await import('jsqr');
   const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
@@ -34,6 +39,8 @@ export async function startScanner(video: HTMLVideoElement, onCode: (text: strin
   }
   let timer = 0;
   let found = false;
+  let lastText = '';
+  let lastAt = 0;
   const tick = () => {
     if (found) return;
     const vw = video.videoWidth;
@@ -50,9 +57,15 @@ export async function startScanner(video: HTMLVideoElement, onCode: (text: strin
       const { data } = ctx.getImageData(0, 0, w, h);
       const code = decodeQr(data, w, h, { inversionAttempts: 'dontInvert' });
       if (code?.data) {
-        found = true;
-        onCode(code.data);
-        return;
+        const now = Date.now();
+        if (code.data !== lastText || now - lastAt > 2000) {
+          lastText = code.data;
+          lastAt = now;
+          if (onCode(code.data)) {
+            found = true;
+            return;
+          }
+        }
       }
     }
     timer = window.setTimeout(tick, SCAN_INTERVAL_MS);

@@ -62,20 +62,15 @@ export function mountPlayer(app: HTMLElement): { destroy(): void } {
   const number = h('p', { class: 'player-number' });
   const wallNote = h('p', { class: 'player-wall', hidden: true });
   const playHint = h('p', { class: 'player-wall', hidden: true }, '控制端已开始播放');
-  const accept = h('button', { class: 'btn btn-primary', type: 'button' }, '继续播放') as HTMLButtonElement;
-  accept.addEventListener('click', () => acceptControl());
-  const fsButton = h('button', { class: 'btn', type: 'button' }, '全屏播放') as HTMLButtonElement;
-  // iPhone Safari has no Fullscreen API; the page is already as big as it gets there.
-  // The app's WebView answers canFullscreen but ignores the request, and the app
-  // is already full-bleed, so the button has nothing to do inside the app either.
-  if (!canFullscreen() || inAppShell()) fsButton.hidden = true;
-  const paintFsLabel = () => {
-    fsButton.textContent = fullscreenElement() ? '退出全屏' : '全屏播放';
-  };
-  fsButton.addEventListener('click', toggleFullscreen);
-  document.addEventListener('fullscreenchange', paintFsLabel);
-  document.addEventListener('webkitfullscreenchange', paintFsLabel);
-  paintFsLabel();
+  // One button does both jobs: enter playback, and where the browser allows
+  // it, hide its own bars too. iPhone Safari has no Fullscreen API and the
+  // app's WebView is already full-bleed, so there the tap only enters playback.
+  const fullscreen = canFullscreen() && !inAppShell();
+  const play = h('button', { class: 'btn btn-primary', type: 'button' }, fullscreen ? '全屏播放' : '继续播放') as HTMLButtonElement;
+  play.addEventListener('click', () => {
+    acceptControl();
+    if (fullscreen && !fullscreenElement()) toggleFullscreen();
+  });
   const joined = h(
     'div',
     { class: 'player-joined', hidden: true },
@@ -85,7 +80,7 @@ export function mountPlayer(app: HTMLElement): { destroy(): void } {
     playHint,
     joinStatus,
     h('p', { class: 'player-auto-hint' }, '已自动进入播放。退出播放后可回到这里继续。'),
-    h('div', { class: 'player-actions' }, accept, fsButton),
+    h('div', { class: 'player-actions' }, play),
   );
 
   app.replaceChildren(
@@ -180,8 +175,6 @@ export function mountPlayer(app: HTMLElement): { destroy(): void } {
   });
   return {
     destroy() {
-      document.removeEventListener('fullscreenchange', paintFsLabel);
-      document.removeEventListener('webkitfullscreenchange', paintFsLabel);
       unwatch();
       unwatchInfo();
       unwatchWall();

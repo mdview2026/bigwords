@@ -2,7 +2,7 @@ import { h, toast } from '../chrome';
 import { go } from '../nav';
 import { sitePath } from '../paths';
 import { inAppShell } from './device-id';
-import { canFullscreen, toggleFullscreen } from './fullscreen';
+import { canFullscreen, fullscreenElement, toggleFullscreen } from './fullscreen';
 import { acceptControl, hasAcceptedControl, joinRoom, leaveRoom, watchJoin, watchPending, type JoinState } from './join-link';
 import { DEFAULT_BROKER } from './protocol';
 import { formatRoomCode, isRoomCode, parseRoomInput } from './room';
@@ -52,35 +52,49 @@ export function mountJoin(app: HTMLElement): { destroy(): void } {
   }) as HTMLInputElement;
   const addBtn = h('button', { class: 'btn', type: 'button' }, '加入') as HTMLButtonElement;
   let stopScan: (() => void) | null = null;
+  // Logical state, apart from the camera handle: a code can decode on the very
+  // first frame, before startScanner's promise hands back the stop function.
+  let scanning = false;
 
   const done = () => {
+    scanning = false;
     input.value = '';
     stopScan?.();
     stopScan = null;
     scanner.hidden = true;
     scanBtn.textContent = '扫码加入';
   };
-  const addText = (text: string) => {
+  const addText = (text: string): boolean => {
     const parsed = parseRoomInput(text);
     if (!parsed.ok) {
       toast(parsed.reason === 'player-code' ? '这是播放器的编号。要扫控制端出示的二维码，或输入控制端的 6 位编号' : '这不是有效的房间编号');
-      return;
+      return false;
     }
     joinRoom(parsed.room, parsed.broker === DEFAULT_BROKER ? undefined : parsed.broker);
     done();
+    return true;
   };
   scanBtn.addEventListener('click', () => {
-    if (stopScan) {
+    if (scanning) {
       done();
       return;
     }
+    scanning = true;
     void startScanner(video, addText)
       .then((stop) => {
+        // A first-frame decode already closed the scanner: release the camera.
+        if (!scanning) {
+          stop();
+          return;
+        }
         stopScan = stop;
         scanner.hidden = false;
         scanBtn.textContent = '停止扫描';
       })
-      .catch(() => toast('无法打开相机，可以手动输入编号'));
+      .catch(() => {
+        scanning = false;
+        toast('无法打开相机，可以手动输入编号');
+      });
   });
   addBtn.addEventListener('click', () => addText(input.value));
   input.addEventListener('keydown', (event) => {
@@ -95,12 +109,15 @@ export function mountJoin(app: HTMLElement): { destroy(): void } {
   const number = h('p', { class: 'player-number', hidden: true });
   const waiting = h('p', { class: 'host-hint', hidden: true }, '还没收到编号：控制端可能没打开，或房间已满');
   const playHint = h('p', { class: 'player-wall', hidden: true }, '控制端已开始播放');
-  const accept = h('button', { class: 'btn btn-primary', type: 'button' }, '继续播放') as HTMLButtonElement;
-  accept.addEventListener('click', () => acceptControl());
-  const fsButton = h('button', { class: 'btn', type: 'button' }, '全屏播放') as HTMLButtonElement;
-  // iPhone Safari has no Fullscreen API, and the app is already full-bleed.
-  if (!canFullscreen() || inAppShell()) fsButton.hidden = true;
-  fsButton.addEventListener('click', toggleFullscreen);
+  // One button does both jobs: enter playback, and where the browser allows
+  // it, hide its own bars too. iPhone Safari has no Fullscreen API and the
+  // app's WebView is already full-bleed, so there the tap only enters playback.
+  const fullscreen = canFullscreen() && !inAppShell();
+  const play = h('button', { class: 'btn btn-primary', type: 'button' }, fullscreen ? '全屏播放' : '继续播放') as HTMLButtonElement;
+  play.addEventListener('click', () => {
+    acceptControl();
+    if (fullscreen && !fullscreenElement()) toggleFullscreen();
+  });
   const exitBtn = h('button', { class: 'btn', type: 'button' }, '退出房间') as HTMLButtonElement;
   exitBtn.addEventListener('click', () => {
     leaveRoom();
@@ -125,7 +142,7 @@ export function mountJoin(app: HTMLElement): { destroy(): void } {
     waiting,
     playHint,
     h('p', { class: 'player-auto-hint' }, '已自动进入播放。退出播放后可回到这里继续。'),
-    h('div', { class: 'join-actions' }, accept, fsButton, exitBtn),
+    h('div', { class: 'join-actions' }, play, exitBtn),
   );
 
   let waitTimer = 0;

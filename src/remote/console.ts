@@ -244,42 +244,59 @@ export function mountConsole(app: HTMLElement, mode: 'scan' | 'show'): { destroy
         sendNumbers(roster, clear);
       };
 
-      const addText = (value: string) => {
-        const pairing = parsePairing(value);
-        if (!pairing) {
-          toast('这不是播放端二维码');
-          return;
-        }
-        const roster = readRoster();
-        const known = roster.some((player) => player.id === pairing.id);
-        if (!known && roster.length >= MAX_SLOTS) {
-          toast(`最多 ${MAX_SLOTS} 台`);
-          return;
-        }
-        apply(upsertPlayer(pairing));
-        manual.value = '';
-        toast(known ? '这台已经在列表里' : '已添加播放设备');
+      // The scanner's logical state, apart from the camera handle: a code can
+      // decode on the very first frame, before startScanner's promise hands
+      // back the stop function, so stopScan alone cannot say "scanning".
+      let scanning = false;
+      const closeScanner = () => {
+        scanning = false;
         stopScan?.();
         stopScan = null;
         scanner.hidden = true;
         scanBtn.textContent = '扫码添加';
       };
 
+      const addText = (value: string): boolean => {
+        const pairing = parsePairing(value);
+        if (!pairing) {
+          toast('这不是播放端二维码');
+          return false;
+        }
+        const roster = readRoster();
+        const known = roster.some((player) => player.id === pairing.id);
+        if (!known && roster.length >= MAX_SLOTS) {
+          toast(`最多 ${MAX_SLOTS} 台`);
+          return false;
+        }
+        apply(upsertPlayer(pairing));
+        manual.value = '';
+        toast(known ? '这台已经在列表里' : '已添加播放设备');
+        closeScanner();
+        return true;
+      };
+
       scanBtn.addEventListener('click', () => {
-        if (stopScan) {
-          stopScan();
-          stopScan = null;
-          scanner.hidden = true;
-          scanBtn.textContent = '扫码添加';
+        if (scanning) {
+          closeScanner();
           return;
         }
+        scanning = true;
         void startScanner(video, addText)
           .then((stop) => {
+            // A first-frame decode already closed the scanner: the camera
+            // came up after addText ran, so just release it.
+            if (!scanning) {
+              stop();
+              return;
+            }
             stopScan = stop;
             scanner.hidden = false;
             scanBtn.textContent = '停止扫描';
           })
-          .catch(() => toast('无法打开相机，可以手动输入编号'));
+          .catch(() => {
+            scanning = false;
+            toast('无法打开相机，可以手动输入编号');
+          });
       });
       addBtn.addEventListener('click', () => addText(manual.value));
       manual.addEventListener('keydown', (event) => {

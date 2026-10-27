@@ -234,7 +234,7 @@ export function mountQuick(app: HTMLElement): { destroy(): void } {
     else if (action === 'player-show') go('/?role=join');
   };
 
-  const openConnect = () => {
+  const openConnect = (mode: 'control' | 'player') => {
     rememberText();
     rememberColors();
     remember();
@@ -246,7 +246,7 @@ export function mountQuick(app: HTMLElement): { destroy(): void } {
         h('p', { class: 'quick-connect-lead' }, '牌子已经准备好了。选择这块设备接下来要做的事。'),
         h(
           'section',
-          { class: 'quick-connect-group' },
+          { class: 'quick-connect-group', 'data-group': 'control' },
           h('h3', {}, '控制其他屏幕'),
           h('p', { class: 'quick-connect-note', hidden: true }, '先写上文字，才能控制其他屏幕。'),
           h(
@@ -258,7 +258,7 @@ export function mountQuick(app: HTMLElement): { destroy(): void } {
         ),
         h(
           'section',
-          { class: 'quick-connect-group' },
+          { class: 'quick-connect-group', 'data-group': 'player' },
           h('h3', {}, '让这块屏幕播放'),
           h(
             'div',
@@ -286,12 +286,16 @@ export function mountQuick(app: HTMLElement): { destroy(): void } {
       });
       document.body.append(dialog);
     }
+    // Each entry point asks one question, so the sheet shows only its own group.
+    for (const group of dialog.querySelectorAll<HTMLElement>('[data-group]')) group.hidden = group.dataset.group !== mode;
     // Being a player never needs words; controlling another screen does.
     for (const option of dialog.querySelectorAll<HTMLButtonElement>('[data-connect^="control"]')) option.disabled = blank();
     const note = dialog.querySelector<HTMLElement>('.quick-connect-note');
     if (note) note.hidden = !blank();
     if (!dialog.open) dialog.showModal();
   };
+  const openControl = () => openConnect('control');
+  const openPlayer = () => openConnect('player');
 
   const onRailClick = (event: MouseEvent) => {
     const button = (event.target as Element | null)?.closest<HTMLButtonElement>('.quick-effect');
@@ -331,8 +335,8 @@ export function mountQuick(app: HTMLElement): { destroy(): void } {
   fgInput.addEventListener('change', onFgChange);
   bgInput.addEventListener('change', onBgChange);
   play.addEventListener('click', playNow);
-  remote.addEventListener('click', openConnect);
-  playerLink.addEventListener('click', openConnect);
+  remote.addEventListener('click', openControl);
+  playerLink.addEventListener('click', openPlayer);
 
   // The header's installer download: show the QR dialog instead of leaving
   // the page (a plain download would also work - the href is the APK).
@@ -361,8 +365,8 @@ export function mountQuick(app: HTMLElement): { destroy(): void } {
       fgInput.removeEventListener('change', onFgChange);
       bgInput.removeEventListener('change', onBgChange);
       play.removeEventListener('click', playNow);
-      remote.removeEventListener('click', openConnect);
-      playerLink.removeEventListener('click', openConnect);
+      remote.removeEventListener('click', openControl);
+      playerLink.removeEventListener('click', openPlayer);
       app.removeEventListener('click', onAppClick);
       if (dialog?.open) dialog.close();
       dialog?.remove();
