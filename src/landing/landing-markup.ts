@@ -107,7 +107,7 @@ export function landingMarkup(version: string): string {
     '<div class="lp-glow lp-glow-a" aria-hidden="true"></div>' +
     '<div class="lp-wrap lp-hero-grid"><div class="lp-hero-copy">' +
     '<p class="lp-eyebrow"><span class="lp-eyebrow-dash" aria-hidden="true"></span>免费 · 开源 · 无需注册</p>' +
-    '<h1 class="lp-hero-title">把一句话，<br>铺满<em>整块屏幕</em>。</h1>' +
+    '<h1 class="lp-hero-title">把一句话<br>铺满<em>整块屏幕</em></h1>' +
     '<p class="lp-lede">在手机、平板、电视或任何带浏览器的屏幕上，把想说的话放大到占满整屏。接机、倒计时、店铺 Wi-Fi、演出应援——写完即播，一条链接就是全部。</p>' +
     `<div class="lp-hero-actions"><a class="lp-btn lp-btn-primary lp-btn-lg" href="${app}">立即写一个</a>` +
     `<a class="lp-btn lp-btn-ghost lp-btn-lg" href="${apk}">` +
